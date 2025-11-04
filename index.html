@@ -81,11 +81,11 @@
   }
 
   tr.valid-row {
-    background-color: #fdeaea;
+    background-color:  #eafbe7;
   }
 
   tr.invalid-row {
-    background-color: #eafbe7;
+    background-color: #fdeaea;
   }
 
   .footer {
@@ -190,7 +190,7 @@
         labels: ["Valid", "Invalid"],
         datasets: [{
           data: [valid, invalid],
-          backgroundColor: ["#e74c3c" , "#2ecc71"]
+          backgroundColor: ["#2ecc71" , "#e74c3c"]
         }]
       },
       options: { plugins: { legend: { position: "bottom" } } }
@@ -203,7 +203,7 @@
         datasets: [{
           label: "Access Events",
           data: [valid, invalid],
-          backgroundColor: ["#e74c3c" , "#2ecc71"]
+          backgroundColor: ["#2ecc71" , "#e74c3c"]
         }]
       },
       options: {
@@ -218,4 +218,5 @@
 
 </body>
 </html>
+
 
