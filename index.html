@@ -142,8 +142,8 @@
       if (!Array.isArray(data)) return;
 
       const total = data.length;
-      const valid = data.filter(d => d.status?.toLowerCase().includes("valid")).length;
-      const invalid = total - valid;
+      const valid = data.filter(d => d.status?.toLowerCase() === "access granted").length;
+      const invalid = data.length - valid;
 
       document.getElementById("total").innerText = total;
       document.getElementById("valid").innerText = valid;
@@ -218,5 +218,6 @@
 
 </body>
 </html>
+
 
 
