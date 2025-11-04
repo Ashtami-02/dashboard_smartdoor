@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Smart Door Lock Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  body {
+    font-family: "Poppins", sans-serif;
+    background-color: #f4f6f8;
+    margin: 0;
+    padding: 20px;
+  }
+
+  h1 {
+    text-align: center;
+    color: #2d3436;
+  }
+
+  .cards {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-top: 20px;
+  }
+
+  .card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    padding: 20px;
+    text-align: center;
+    width: 200px;
+  }
+
+  .card h2 {
+    margin: 10px 0;
+    color: #2d3436;
+  }
+
+  .valid { color: #2ecc71; }
+  .invalid { color: #e74c3c; }
+
+  .charts {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin: 20px 0;
+  }
+
+  canvas {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    padding: 10px;
+    width: 350px !important;
+    height: 350px !important;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+  }
+
+  th, td {
+    padding: 12px;
+    text-align: center;
+    border-bottom: 1px solid #ddd;
+  }
+
+  th {
+    background: #2f3640;
+    color: white;
+  }
+
+  tr.valid-row {
+    background-color: #fdeaea;
+  }
+
+  tr.invalid-row {
+    background-color: #eafbe7;
+  }
+
+  .footer {
+    text-align: center;
+    margin-top: 40px;
+    color: #888;
+    font-size: 0.9rem;
+  }
+</style>
+</head>
+<body>
+
+<h1>🔒 Smart Door Lock Access Dashboard</h1>
+
+<div class="cards">
+  <div class="card"><h2 id="total">0</h2><p>Total Events</p></div>
+  <div class="card"><h2 id="valid" class="valid">0</h2><p>Valid Access</p></div>
+  <div class="card"><h2 id="invalid" class="invalid">0</h2><p>Invalid Access</p></div>
+  <div class="card"><h2 id="updated">--</h2><p>Last Updated</p></div>
+</div>
+
+<div class="charts">
+  <canvas id="pieChart"></canvas>
+  <canvas id="barChart"></canvas>
+</div>
+
+<table id="logTable">
+  <thead>
+    <tr>
+      <th>Event ID</th>
+      <th>Event Type</th>
+      <th>RFID ID</th>
+      <th>Status</th>
+      <th>Remarks</th>
+      <th>Timestamp</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<p class="footer">⏱️ Auto-refreshes every 10 seconds</p>
+
+<script>
+  const apiUrl = "https://vcj4uxtlnk.execute-api.ap-south-1.amazonaws.com/prod/logs"; // ✅ your working API
+
+  async function loadLogs() {
+    try {
+      const res = await fetch(apiUrl + "?nocache=" + Date.now());
+      const json = await res.json();
+
+      // ✅ Parse stringified body
+      const data = JSON.parse(json.body);
+
+      if (!Array.isArray(data)) return;
+
+      const total = data.length;
+      const valid = data.filter(d => d.status?.toLowerCase().includes("valid")).length;
+      const invalid = total - valid;
+
+      document.getElementById("total").innerText = total;
+      document.getElementById("valid").innerText = valid;
+      document.getElementById("invalid").innerText = invalid;
+      document.getElementById("updated").innerText = new Date().toLocaleTimeString();
+
+      updateTable(data);
+      updateCharts(valid, invalid);
+    } catch (err) {
+      console.error("Error loading logs:", err);
+    }
+  }
+
+  function updateTable(data) {
+    const tbody = document.querySelector("#logTable tbody");
+    tbody.innerHTML = "";
+    data.forEach(item => {
+      const tr = document.createElement("tr");
+      const isValid = item.status?.toLowerCase().includes("valid");
+      tr.className = isValid ? "valid-row" : "invalid-row";
+      tr.innerHTML = `
+        <td>${item.event_id || "--"}</td>
+        <td>${item.event_type || "--"}</td>
+        <td>${item.rfid_uid || "--"}</td>
+        <td>${item.status || "--"}</td>
+        <td>${item.remarks || "--"}</td>
+        <td>${item.timestamp || "--"}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  let pieChart, barChart;
+  function updateCharts(valid, invalid) {
+    const ctx1 = document.getElementById("pieChart").getContext("2d");
+    const ctx2 = document.getElementById("barChart").getContext("2d");
+
+    if (pieChart) pieChart.destroy();
+    if (barChart) barChart.destroy();
+
+    pieChart = new Chart(ctx1, {
+      type: "doughnut",
+      data: {
+        labels: ["Valid", "Invalid"],
+        datasets: [{
+          data: [valid, invalid],
+          backgroundColor: ["#2ecc71", "#e74c3c"]
+        }]
+      },
+      options: { plugins: { legend: { position: "bottom" } } }
+    });
+
+    barChart = new Chart(ctx2, {
+      type: "bar",
+      data: {
+        labels: ["Valid", "Invalid"],
+        datasets: [{
+          label: "Access Events",
+          data: [valid, invalid],
+          backgroundColor: ["#2ecc71", "#e74c3c"]
+        }]
+      },
+      options: {
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+  }
+
+  loadLogs();
+  setInterval(loadLogs, 10000); // refresh every 10 sec
+</script>
+
+</body>
+</html>
